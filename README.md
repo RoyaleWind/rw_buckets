@@ -33,5 +33,4 @@ For detailed documentation, installation guides, and troubleshooting tips, visit
 For any issues or inquiries, feel free to reach out to the support team via our [Discord](https://discord.gg/T8b8q7ZN8b) or through GitHub Issues.
 
 ---
-
 Enjoy using RW Buckets to enhance your FiveM server management!

@@ -1,3 +1,4 @@
+Support Me on https://ko-fi.com/royalewind
 # RW Buckets - Standalone Bucket Management System
 
 ## Overview

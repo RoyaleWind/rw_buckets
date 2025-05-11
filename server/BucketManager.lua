@@ -17,7 +17,7 @@ local BucketManager = {
 
 ---Garbage collects an empty bucket
 ---@param bucketId number
-function BucketManager:garbageColector(bucketId)
+function BucketManager:garbageCollector(bucketId)
     local bucket = self.buckets[bucketId] ---@type Bucket|nil
     if bucket and not next(bucket.players) and not next(bucket.entities) then
         self.keyToId[bucket.key] = nil
@@ -31,6 +31,11 @@ end
 ---@param key string
 ---@return number bucketId
 function BucketManager:createBucket(key)
+    if not key or type(key) ~= "string" then
+        error("Invalid bucket key: expected string, got " .. (type(key) or "nil"))
+        return 0
+    end
+
     local bucketId
     if #self.reusableIds > 0 then
         bucketId = table.remove(self.reusableIds, 1)
@@ -57,12 +62,16 @@ end
 ---Sets a player's routing bucket
 ---@param playerId number
 ---@param key string
+---@return boolean success
 function BucketManager:setPlayerBucket(playerId, key)
+    if not playerId or not key then return false end
+    if not GetPlayerName(playerId) then return false end
+
     local currentBucketId = GetPlayerRoutingBucket(playerId) ---@type number
     local currentBucket = self.buckets[currentBucketId] ---@type Bucket|nil
     if currentBucket then
         currentBucket.players[playerId] = nil
-        self:garbageColector(currentBucketId)
+        self:garbageCollector(currentBucketId)
     end
     
     local bucketId = self:getBucketId(key)
@@ -72,6 +81,7 @@ function BucketManager:setPlayerBucket(playerId, key)
     SetPlayerRoutingBucket(playerId, bucketId)
     TriggerEvent("rw_buckets:onBucketUpdate", playerId, key)
     TriggerClientEvent("rw_buckets:onBucketUpdate", playerId, key)
+    return true
 end
 
 ---Gets the bucket key for a player
@@ -85,33 +95,43 @@ end
 
 ---Removes a player from their current bucket
 ---@param playerId number
+---@return boolean success
 function BucketManager:removePlayerFromBucket(playerId)
+    if not playerId then return false end
+    if not GetPlayerName(playerId) then return false end
+    
     local currentBucketId = GetPlayerRoutingBucket(playerId) ---@type number
     local currentBucket = self.buckets[currentBucketId] ---@type Bucket|nil
     if currentBucket then
         currentBucket.players[playerId] = nil
-        self:garbageColector(currentBucketId)
+        self:garbageCollector(currentBucketId)
     end
     SetPlayerRoutingBucket(playerId, 0)
     TriggerEvent("rw_buckets:onBucketUpdate", playerId, 0)
     TriggerClientEvent("rw_buckets:onBucketUpdate", playerId, 0)
+    return true
 end
 
 ---Sets an entity's routing bucket
 ---@param entityId number
 ---@param key string
+---@return boolean success
 function BucketManager:setEntityBucket(entityId, key)
+    if not entityId or not key then return false end
+    if not DoesEntityExist(entityId) then return false end
+
     local currentBucketId = GetEntityRoutingBucket(entityId) ---@type number
     local currentBucket = self.buckets[currentBucketId] ---@type Bucket|nil
     if currentBucket then
         currentBucket.entities[entityId] = nil
-        self:garbageColector(currentBucketId)
+        self:garbageCollector(currentBucketId)
     end
     
     local bucketId = self:getBucketId(key)
     local bucket = self.buckets[bucketId] ---@type Bucket
     bucket.entities[entityId] = true
     SetEntityRoutingBucket(entityId, bucketId)
+    return true
 end
 
 ---Gets the bucket key for an entity
@@ -125,20 +145,29 @@ end
 
 ---Removes an entity from its current bucket
 ---@param entityId number
+---@return boolean success
 function BucketManager:removeEntityFromBucket(entityId)
+    if not entityId then return false end
+    if not DoesEntityExist(entityId) then return false end
+    
     local currentBucketId = GetEntityRoutingBucket(entityId) ---@type number
     local currentBucket = self.buckets[currentBucketId] ---@type Bucket|nil
     if currentBucket then
         currentBucket.entities[entityId] = nil
-        self:garbageColector(currentBucketId)
+        self:garbageCollector(currentBucketId)
     end
     SetEntityRoutingBucket(entityId, 0)
+    return true
 end
 
 ---Gets the contents of a bucket
 ---@param key string
 ---@return Bucket contents
 function BucketManager:getBucketContents(key)
+    if not key or type(key) ~= "string" then
+        return { players = {}, entities = {}, key = key or "unknown" }
+    end
+
     local bucketId = self.keyToId[key] ---@type number|nil
     return bucketId and self.buckets[bucketId] or { players = {}, entities = {}, key = key }
 end
@@ -168,7 +197,7 @@ function BucketManager:killBucket(key)
     for id in pairs(bucket.entities) do ---@type number
         self:removeEntityFromBucket(id)
     end
-    self:garbageColector(bucketId)
+    self:garbageCollector(bucketId)
 end
 
 return BucketManager

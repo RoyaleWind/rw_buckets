@@ -14,6 +14,10 @@ local function validateBucketKey(bucketKey)
         lib.print.error("Invalid bucket key: must be a string")
         return false
     end
+    if bucketKey == "" then
+        lib.print.error("Invalid bucket key: cannot be empty")
+        return false
+    end
     return true
 end
 
@@ -42,8 +46,16 @@ end
 ---@return boolean success
 function bucketAPI.setVeh(vehicle, bucketKey)
     if not validateBucketKey(bucketKey) then return false end
+    if not vehicle or type(vehicle) ~= "number" then
+        lib.print.error("Invalid vehicle: expected number, got " .. (type(vehicle) or "nil"))
+        return false
+    end
     if not DoesEntityExist(vehicle) then
         lib.print.error("Invalid vehicle: entity does not exist")
+        return false
+    end
+    if GetEntityType(vehicle) ~= 2 then
+        lib.print.error("Invalid vehicle: entity is not a vehicle")
         return false
     end
 
@@ -60,12 +72,25 @@ end
 ---@param vehicle number Entity ID of the vehicle
 ---@return boolean success
 function bucketAPI.remVeh(vehicle)
+    if not vehicle or type(vehicle) ~= "number" then
+        lib.print.error("Invalid vehicle: expected number, got " .. (type(vehicle) or "nil"))
+        return false
+    end
     if not DoesEntityExist(vehicle) then
         lib.print.error("Invalid vehicle: entity does not exist")
         return false
     end
+    if GetEntityType(vehicle) ~= 2 then
+        lib.print.error("Invalid vehicle: entity is not a vehicle")
+        return false
+    end
 
     local netId = NetworkGetNetworkIdFromEntity(vehicle) ---@type number
+    if netId == 0 then
+        lib.print.error("Failed to get network ID for vehicle")
+        return false
+    end
+    
     return lib.callback.await('rw_buckets:removeVehFromBucket', false, netId) ---@type boolean
 end
 
@@ -73,16 +98,37 @@ end
 ---@param bucketKey string
 ---@return boolean success
 function bucketAPI.setMeAndVeh(bucketKey)
+    if not validateBucketKey(bucketKey) then return false end
+    
     local veh = cache.vehicle ---@type number|nil
-    if not veh or cache.seat ~= -1 then
+    if not veh or type(veh) ~= "number" then
+        lib.print.error("Not in a vehicle")
+        return false
+    end
+    if cache.seat ~= -1 then
         lib.print.error("Must be the driver to set vehicle bucket")
         return false
     end
-    if not bucketAPI.setVeh(veh, bucketKey) then return false end
+    if not DoesEntityExist(veh) then
+        lib.print.error("Vehicle no longer exists")
+        return false
+    end
+    
+    -- Set vehicle bucket first
+    if not bucketAPI.setVeh(veh, bucketKey) then 
+        lib.print.error("Failed to set vehicle bucket")
+        return false 
+    end
+    
+    -- Then set player bucket
     if bucketAPI.setMe(bucketKey) then
         TaskWarpPedIntoVehicle(cache.ped, veh, -1) -- Ensure player stays in vehicle
         return true
     end
+    
+    -- If player bucket fails, reset vehicle bucket
+    bucketAPI.remVeh(veh)
+    lib.print.error("Failed to set player bucket, vehicle bucket reset")
     return false
 end
 
@@ -90,15 +136,34 @@ end
 ---@return boolean success
 function bucketAPI.remMeAndVeh()
     local veh = cache.vehicle ---@type number|nil
-    if not veh or cache.seat ~= -1 then
+    if not veh or type(veh) ~= "number" then
+        lib.print.error("Not in a vehicle")
+        return false
+    end
+    if cache.seat ~= -1 then
         lib.print.error("Must be the driver to remove vehicle bucket")
         return false
     end
-    if not bucketAPI.remVeh(veh) then return false end
-    if bucketAPI.remMe() then
+    if not DoesEntityExist(veh) then
+        lib.print.error("Vehicle no longer exists")
+        return false
+    end
+    
+    -- Remove vehicle bucket first
+    local vehicleSuccess = bucketAPI.remVeh(veh)
+    if not vehicleSuccess then
+        lib.print.error("Failed to remove vehicle from bucket")
+        return false
+    end
+    
+    -- Then remove player from bucket
+    local playerSuccess = bucketAPI.remMe()
+    if playerSuccess then
         TaskWarpPedIntoVehicle(cache.ped, veh, -1) -- Ensure player stays in vehicle
         return true
     end
+    
+    lib.print.error("Failed to remove player from bucket")
     return false
 end
 

@@ -78,6 +78,8 @@ end
 ---@param source number
 ---@return string|nil
 lib.callback.register('rw_buckets:getMyBucket', function(source)
+    if not source or source <= 0 then return nil end
+    if not GetPlayerName(source) then return nil end
     return bucketExports.getPlayerBucketKey(source)
 end)
 
@@ -85,6 +87,7 @@ end)
 ---@param source number
 ---@return table<number, {id: number, key: string}>
 lib.callback.register('rw_buckets:getActiveBuckets', function(source)
+    if not source or source <= 0 then return {} end
     return bucketExports.getActiveBucketKeys()
 end)
 
@@ -93,6 +96,8 @@ end)
 ---@param key string
 ---@return Bucket
 lib.callback.register('rw_buckets:getBucketContents', function(source, key)
+    if not source or source <= 0 then return { players = {}, entities = {}, key = key or "unknown" } end
+    if not key or type(key) ~= "string" then return { players = {}, entities = {}, key = key or "unknown" } end
     return bucketExports.getBucketContents(key)
 end)
 
@@ -101,7 +106,10 @@ end)
 ---@param key string
 ---@return boolean
 lib.callback.register('rw_buckets:kill', function(source, key)
+    if not source or source <= 0 then return false end
+    if not key or type(key) ~= "string" then return false end
     if not IsPlayerAceAllowed(source, "command.rw_buckets") then return false end
+    
     bucketExports.killBucket(key)
     return true
 end)
@@ -111,11 +119,13 @@ end)
 ---@param playerId string|number
 ---@return boolean
 lib.callback.register('rw_buckets:removePlayerFromBucket', function(source, playerId)
+    if not source or source <= 0 then return false end
+    if not playerId then return false end
     if not IsPlayerAceAllowed(source, "command.rw_buckets") then return false end
+    
     local pid = tonumber(playerId)
     if not pid or not GetPlayerName(pid) then return false end
-    bucketExports.removePlayerFromBucket(pid)
-    return true
+    return bucketExports.removePlayerFromBucket(pid)
 end)
 
 ---Removes an entity from its bucket
@@ -123,10 +133,12 @@ end)
 ---@param entityId string|number
 ---@return boolean
 lib.callback.register('rw_buckets:removeEntityFromBucket', function(source, entityId)
+    if not source or source <= 0 then return false end
+    if not entityId then return false end
+    
     local eid = tonumber(entityId)
     if not eid or not DoesEntityExist(eid) then return false end
-    bucketExports.removeEntityFromBucket(eid)
-    return true
+    return bucketExports.removeEntityFromBucket(eid)
 end)
 
 -- <<<Events>>>

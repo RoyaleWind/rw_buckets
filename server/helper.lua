@@ -1,49 +1,39 @@
----Sets the player's bucket via callback
----@param source number The player source ID
----@param key string The bucket key to set
----@return boolean success
-lib.callback.register('rw_buckets:setMeBucket', function(source, key)
-    if not source or source <= 0 then return false end
-    if not key or type(key) ~= "string" or key == "" then return false end
-    return exports.rw_buckets:setPlayerBucket(source, key)
-end)
+local Helper = {}
 
----Removes the player from their current bucket via callback
----@param source number The player source ID
----@return boolean success
-lib.callback.register('rw_buckets:removeMeFromBucket', function(source)
-    if not source or source <= 0 then return false end
-    return exports.rw_buckets:removePlayerFromBucket(source)
-end)
+-- Deep copy a table with minimal code
+function Helper.deepCopy(orig)
+    if type(orig) ~= 'table' then return orig end
+    local copy = {}
+    for k, v in pairs(orig) do copy[k] = Helper.deepCopy(v) end
+    return copy
+end
 
----Sets a vehicle's bucket via callback
----@param source number The player source ID
----@param netId number The network ID of the vehicle
----@param key string The bucket key to set
----@return boolean success
-lib.callback.register('rw_buckets:setVehBucket', function(source, netId, key)
-    if not source or source <= 0 then return false end
-    if not netId then return false end
-    if not key or type(key) ~= "string" or key == "" then return false end
-    
-    local veh = NetworkGetEntityFromNetworkId(netId) ---@type number
-    if veh == 0 then return false end -- Check if entity exists
-    if not DoesEntityExist(veh) then return false end
-    
-    return exports.rw_buckets:setEntityBucket(veh, key)
-end)
+-- Merge two tables efficiently
+function Helper.merge(t1, t2)
+    for k, v in pairs(t2) do
+        t1[k] = (type(v) == "table" and type(t1[k]) == "table") and Helper.merge(t1[k], v) or v
+    end
+    return t1
+end
 
----Removes a vehicle from its bucket via callback
----@param source number The player source ID
----@param netId number The network ID of the vehicle
----@return boolean success
-lib.callback.register('rw_buckets:removeVehFromBucket', function(source, netId)
-    if not source or source <= 0 then return false end
-    if not netId then return false end
-    
-    local veh = NetworkGetEntityFromNetworkId(netId) ---@type number
-    if veh == 0 then return false end -- Check if entity exists
-    if not DoesEntityExist(veh) then return false end
-    
-    return exports.rw_buckets:removeEntityFromBucket(veh)
-end)
+-- Fast table count
+function Helper.count(t)
+    local n = 0
+    for _ in pairs(t) do n = n + 1 end
+    return n
+end
+
+-- Convert array to hash map for O(1) lookups
+function Helper.arrayToMap(arr)
+    local map = {}
+    for _, v in ipairs(arr) do map[v] = true end
+    return map
+end
+
+-- Safe JSON handling
+function Helper.safeJson(fn, data, default)
+    local success, result = pcall(fn, data)
+    return success and result or default
+end
+
+return Helper

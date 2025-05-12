@@ -1,71 +1,226 @@
+local Logger = require("server.logger")
+local Security = require("server.security")
+local Persistence = require("server.persistence")
 local bucketManager = require("server.BucketManager") ---@type BucketManager
 local bucketExports = {}
 
----Adds ACE permission for bucket commands
-Citizen.CreateThread(function()
-    lib.addAce('group.admin', 'command.rw_buckets', true)
+-- Initialize the system when resource starts
+AddEventHandler('onResourceStart', function(resourceName)
+    if GetCurrentResourceName() ~= resourceName then return end
+    
+    Logger:info("RW Buckets initializing", { version = "2.2.0" })
+    
+    -- Configure security
+    Security.permissionGroups = {
+        admin = {"command.rw_buckets.admin"},
+        manager = {"command.rw_buckets.manager"},
+        user = {"command.rw_buckets.user"}
+    }
+    
+    -- Configure persistence
+    Persistence.configure({
+        saveInterval = 300, -- 5 minutes
+        saveOnUpdate = false,
+        storage = "file",
+        backupCount = 5
+    })
+    
+    -- Initialize the bucket manager
+    bucketManager:initialize()
+    
+    -- Register predefined templates
+    bucketManager:registerTemplate("interior", {
+        metadata = {
+            description = "Interior instance template",
+            tags = {"interior", "instance"},
+            customData = {}
+        },
+        settings = {
+            allowVehicles = true,
+            allowNPCs = true
+        }
+    })
+    
+    bucketManager:registerTemplate("property", {
+        metadata = {
+            description = "Property instance template",
+            tags = {"property", "instance"},
+            customData = {}
+        },
+        settings = {
+            allowVehicles = false,
+            allowNPCs = false
+        }
+    })
+    
+    bucketManager:registerTemplate("job", {
+        metadata = {
+            description = "Job instance template",
+            tags = {"job", "instance"},
+            customData = {}
+        },
+        settings = {
+            allowVehicles = true,
+            allowNPCs = true,
+            jobSpecific = true
+        }
+    })
+
+    -- Register permissions for bucket commands
+    lib.addAce('group.admin', 'command.rw_buckets.admin', true)
+    lib.addAce('group.admin', 'command.rw_buckets.manager', true)
+    lib.addAce('group.admin', 'command.rw_buckets.user', true)
+    
+    lib.addAce('group.moderator', 'command.rw_buckets.manager', true)
+    lib.addAce('group.moderator', 'command.rw_buckets.user', true)
+    
+    lib.addAce('group.developer', 'command.rw_buckets.admin', true)
+    lib.addAce('group.developer', 'command.rw_buckets.manager', true)
+    lib.addAce('group.developer', 'command.rw_buckets.user', true)
+    
+    Logger:info("RW Buckets initialized successfully")
 end)
 
 -- <<<Player Exports>>>
 ---Sets a player's bucket
----@param src number
----@param key string
-bucketExports.setPlayerBucket = function(src, key)
-    bucketManager:setPlayerBucket(src, key)
+---@param src number The player ID
+---@param key string The bucket key
+---@param metadata table|nil Optional metadata if creating a new bucket
+---@return boolean success
+bucketExports.setPlayerBucket = function(src, key, metadata)
+    return bucketManager:setPlayerBucket(src, key, metadata, src)
 end
 
 ---Removes a player from their bucket
----@param src number
+---@param src number The player ID
+---@return boolean success
 bucketExports.removePlayerFromBucket = function(src)
-    bucketManager:removePlayerFromBucket(src)
+    return bucketManager:removePlayerFromBucket(src, src)
 end
 
 ---Gets a player's bucket key
----@param src number
----@return string|nil
-bucketExports.getPlayerBucketKey = function(src)
-    return bucketManager:getPlayerBucketKey(src)
+---@param src number The player ID
+---@param includeMetadata boolean|nil Whether to include metadata in the result
+---@return string|nil key The bucket key
+---@return table|nil bucket The full bucket object if includeMetadata is true
+bucketExports.getPlayerBucketKey = function(src, includeMetadata)
+    local key, bucket = bucketManager:getPlayerBucketKey(src)
+    if includeMetadata and bucket then
+        return key, bucket
+    end
+    return key
 end
 
 -- <<<Entity Exports>>>
 ---Sets an entity's bucket
----@param entityId number
----@param key string
-bucketExports.setEntityBucket = function(entityId, key)
-    bucketManager:setEntityBucket(entityId, key)
+---@param entityId number The entity ID
+---@param key string The bucket key
+---@param metadata table|nil Optional metadata if creating a new bucket
+---@param source number|nil The requesting source (defaults to caller if not provided)
+---@return boolean success
+bucketExports.setEntityBucket = function(entityId, key, metadata, source)
+    return bucketManager:setEntityBucket(entityId, key, metadata, source or GetInvokingResource() and "resource:"..GetInvokingResource() or nil)
 end
 
 ---Removes an entity from its bucket
----@param entityId number
-bucketExports.removeEntityFromBucket = function(entityId)
-    bucketManager:removeEntityFromBucket(entityId)
+---@param entityId number The entity ID
+---@param source number|nil The requesting source (defaults to caller if not provided)
+---@return boolean success
+bucketExports.removeEntityFromBucket = function(entityId, source)
+    return bucketManager:removeEntityFromBucket(entityId, source or GetInvokingResource() and "resource:"..GetInvokingResource() or nil)
 end
 
 ---Gets an entity's bucket key
----@param entityId number
----@return string|nil
-bucketExports.getEntityBucketKey = function(entityId)
-    return bucketManager:getEntityBucketKey(entityId)
+---@param entityId number The entity ID
+---@param includeMetadata boolean|nil Whether to include metadata in the result
+---@return string|nil key The bucket key
+---@return table|nil bucket The full bucket object if includeMetadata is true
+bucketExports.getEntityBucketKey = function(entityId, includeMetadata)
+    local key, bucket = bucketManager:getEntityBucketKey(entityId)
+    if includeMetadata and bucket then
+        return key, bucket
+    end
+    return key
 end
 
 -- <<<Bucket Exports>>>
 ---Gets the contents of a bucket
----@param key string
----@return Bucket
-bucketExports.getBucketContents = function(key)
-    return bucketManager:getBucketContents(key)
+---@param key string The bucket key
+---@param includeMetadata boolean|nil Whether to include metadata in the result
+---@return table bucket The bucket contents
+bucketExports.getBucketContents = function(key, includeMetadata)
+    return bucketManager:getBucketContents(key, includeMetadata)
 end
 
 ---Gets all active bucket keys
----@return table<number, {id: number, key: string}>
-bucketExports.getActiveBucketKeys = function()
-    return bucketManager:getActiveBucketKeys()
+---@param includeMetadata boolean|nil Whether to include metadata in the result
+---@param filter table|nil Optional filter criteria
+---@return table<number, {id: number, key: string, metadata: table|nil}> buckets
+bucketExports.getActiveBucketKeys = function(includeMetadata, filter)
+    return bucketManager:getActiveBucketKeys(includeMetadata, filter)
 end
 
 ---Kills a bucket and removes all its contents
----@param key string
-bucketExports.killBucket = function(key)
-    bucketManager:killBucket(key)
+---@param key string The bucket key
+---@param source number|nil The requesting source
+---@return boolean success
+bucketExports.killBucket = function(key, source)
+    return bucketManager:killBucket(key, source or GetInvokingResource() and "resource:"..GetInvokingResource() or nil)
+end
+
+-- <<<Template Exports>>>
+---Register a bucket template
+---@param name string Template name
+---@param template table Template configuration
+---@return boolean success
+bucketExports.registerTemplate = function(name, template)
+    return bucketManager:registerTemplate(name, template)
+end
+
+---Get a bucket template
+---@param name string Template name
+---@return table|nil template
+bucketExports.getTemplate = function(name)
+    return bucketManager:getTemplate(name)
+end
+
+---Create a bucket from a template
+---@param key string Bucket key
+---@param templateName string Template name
+---@param overrides table|nil Optional overrides for template values
+---@param source number|nil The requesting source
+---@return number bucketId
+bucketExports.createBucketFromTemplate = function(key, templateName, overrides, source)
+    return bucketManager:createBucketFromTemplate(key, templateName, overrides, source or GetInvokingResource() and "resource:"..GetInvokingResource() or nil)
+end
+
+-- <<<Advanced Bucket Operations>>>
+---Merge two buckets together
+---@param targetKey string The target bucket key (will contain merged contents)
+---@param sourceKey string The source bucket key (will be emptied and deleted)
+---@param source number|nil The requesting source
+---@return boolean success
+bucketExports.mergeBuckets = function(targetKey, sourceKey, source)
+    return bucketManager:mergeBuckets(targetKey, sourceKey, source or GetInvokingResource() and "resource:"..GetInvokingResource() or nil)
+end
+
+---Update bucket metadata
+---@param key string Bucket key
+---@param metadata table New metadata fields
+---@param source number|nil The requesting source
+---@return boolean success
+bucketExports.updateBucketMetadata = function(key, metadata, source)
+    return bucketManager:updateBucketMetadata(key, metadata, source or GetInvokingResource() and "resource:"..GetInvokingResource() or nil)
+end
+
+---Create a new bucket
+---@param key string The bucket key
+---@param metadata table|nil Optional metadata for the bucket
+---@param settings table|nil Optional settings for the bucket
+---@param source number|nil The requesting source
+---@return number bucketId
+bucketExports.createBucket = function(key, metadata, settings, source)
+    return bucketManager:createBucket(key, metadata, settings, source or GetInvokingResource() and "resource:"..GetInvokingResource() or nil)
 end
 
 -- <<<Export Registration>>>

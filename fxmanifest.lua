@@ -1,21 +1,13 @@
 fx_version 'cerulean'
 game 'gta5'
---<<>>
 author 'RoyaleWind'
 name 'MW BUCKET'
 description 'MW BUCKET'
 version '2.1.1'
 lua54 'on'
 contact 'https://discord.gg/T8b8q7ZN8b'
-------------------------------
--- <<<<<<<<<<<<<<<<<<
-------------------------------
 dependencies 'ox_lib'
---<<>>
 shared_script '@ox_lib/init.lua'
--- <<<<<<<<<<<<<<<<<<
-------------------------------
---<<>>
 files {
     'data/**/*',
 }

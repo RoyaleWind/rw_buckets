@@ -1,150 +1,86 @@
-local bucketManager = require("server.BucketManager") ---@type BucketManager
+local bucketManager = require("server.BucketManager")
 local bucketExports = {}
 
----Adds ACE permission for bucket commands
 Citizen.CreateThread(function()
     lib.addAce('group.admin', 'command.rw_buckets', true)
 end)
 
--- <<<Player Exports>>>
----Sets a player's bucket
----@param src number
----@param key string
 bucketExports.setPlayerBucket = function(src, key)
     bucketManager:setPlayerBucket(src, key)
 end
-
----Removes a player from their bucket
----@param src number
 bucketExports.removePlayerFromBucket = function(src)
     bucketManager:removePlayerFromBucket(src)
 end
-
----Gets a player's bucket key
----@param src number
----@return string|nil
 bucketExports.getPlayerBucketKey = function(src)
     return bucketManager:getPlayerBucketKey(src)
 end
-
--- <<<Entity Exports>>>
----Sets an entity's bucket
----@param entityId number
----@param key string
 bucketExports.setEntityBucket = function(entityId, key)
     bucketManager:setEntityBucket(entityId, key)
 end
-
----Removes an entity from its bucket
----@param entityId number
 bucketExports.removeEntityFromBucket = function(entityId)
     bucketManager:removeEntityFromBucket(entityId)
 end
-
----Gets an entity's bucket key
----@param entityId number
----@return string|nil
 bucketExports.getEntityBucketKey = function(entityId)
     return bucketManager:getEntityBucketKey(entityId)
 end
-
--- <<<Bucket Exports>>>
----Gets the contents of a bucket
----@param key string
----@return Bucket
 bucketExports.getBucketContents = function(key)
     return bucketManager:getBucketContents(key)
 end
-
----Gets all active bucket keys
----@return table<number, {id: number, key: string}>
 bucketExports.getActiveBucketKeys = function()
     return bucketManager:getActiveBucketKeys()
 end
-
----Kills a bucket and removes all its contents
----@param key string
 bucketExports.killBucket = function(key)
     bucketManager:killBucket(key)
 end
 
--- <<<Export Registration>>>
 for exportName, exportFunction in pairs(bucketExports) do
     exports(exportName, exportFunction)
 end
 
--- <<<Callbacks>>>
----Gets the calling player's bucket key
----@param source number
----@return string|nil
 lib.callback.register('rw_buckets:getMyBucket', function(source)
     if not source or source <= 0 then return nil end
     if not GetPlayerName(source) then return nil end
     return bucketExports.getPlayerBucketKey(source)
 end)
 
----Gets all active bucket keys
----@param source number
----@return table<number, {id: number, key: string}>
 lib.callback.register('rw_buckets:getActiveBuckets', function(source)
     if not source or source <= 0 then return {} end
     return bucketExports.getActiveBucketKeys()
 end)
 
----Gets the contents of a specific bucket
----@param source number
----@param key string
----@return Bucket
 lib.callback.register('rw_buckets:getBucketContents', function(source, key)
     if not source or source <= 0 then return { players = {}, entities = {}, key = key or "unknown" } end
     if not key or type(key) ~= "string" then return { players = {}, entities = {}, key = key or "unknown" } end
     return bucketExports.getBucketContents(key)
 end)
 
----Kills a bucket if the player has permission
----@param source number
----@param key string
----@return boolean
 lib.callback.register('rw_buckets:kill', function(source, key)
     if not source or source <= 0 then return false end
     if not key or type(key) ~= "string" then return false end
     if not IsPlayerAceAllowed(source, "command.rw_buckets") then return false end
-    
     bucketExports.killBucket(key)
     return true
 end)
 
----Removes a player from their bucket if the caller has permission
----@param source number
----@param playerId string|number
----@return boolean
 lib.callback.register('rw_buckets:removePlayerFromBucket', function(source, playerId)
     if not source or source <= 0 then return false end
     if not playerId then return false end
     if not IsPlayerAceAllowed(source, "command.rw_buckets") then return false end
-    
     local pid = tonumber(playerId)
     if not pid or not GetPlayerName(pid) then return false end
     return bucketExports.removePlayerFromBucket(pid)
 end)
 
----Removes an entity from its bucket
----@param source number
----@param entityId string|number
----@return boolean
 lib.callback.register('rw_buckets:removeEntityFromBucket', function(source, entityId)
     if not source or source <= 0 then return false end
     if not entityId then return false end
-    
     local eid = tonumber(entityId)
     if not eid or not DoesEntityExist(eid) then return false end
     return bucketExports.removeEntityFromBucket(eid)
 end)
 
--- <<<Events>>>
----Cleans up player bucket on disconnect
 AddEventHandler('playerDropped', function(reason)
-    local src = source ---@type number
+    local src = source
     local bucketKey = bucketManager:getPlayerBucketKey(src)
     if bucketKey then
         bucketManager:removePlayerFromBucket(src)
@@ -152,8 +88,7 @@ AddEventHandler('playerDropped', function(reason)
     end
 end)
 
--- <<<Commands>>>
-lib.addCommand('setpb', { -- Short for "Set Player Bucket"
+lib.addCommand('setpb', {
     help = 'Sets a player\'s bucket',
     params = {
         { name = 'id', type = 'playerId', help = 'Player ID' },
@@ -164,18 +99,8 @@ lib.addCommand('setpb', { -- Short for "Set Player Bucket"
     bucketExports.setPlayerBucket(args.id, args.bucket)
 end)
 
-lib.addCommand('resetpb', { -- Short for "Reset Player Bucket"
+lib.addCommand('resetpb', {
     help = 'Removes a player from their bucket',
-    params = {
-        { name = 'id', type = 'playerId', help = 'Player ID' }
-    },
-    restricted = 'group.developer'
-}, function(source, args, raw)
-    bucketExports.removePlayerFromBucket(args.id)
-end)
-
-lib.addCommand('resetb', { -- Short for "Reset Bucket"
-    help = 'Resets a player\'s bucket',
     params = {
         { name = 'id', type = 'playerId', help = 'Player ID' }
     },
@@ -184,7 +109,7 @@ lib.addCommand('resetb', { -- Short for "Reset Bucket"
     bucketExports.removePlayerFromBucket(args.id)
 end)
 
-lib.addCommand('listb', { -- Short for "List Buckets"
+lib.addCommand('listb', {
     help = 'Lists all active buckets',
     params = {},
     restricted = 'group.developer'
@@ -192,7 +117,7 @@ lib.addCommand('listb', { -- Short for "List Buckets"
     print(json.encode(bucketExports.getActiveBucketKeys(), { indent = true }))
 end)
 
-lib.addCommand('getpb', { -- Short for "Get Player Bucket"
+lib.addCommand('getpb', {
     help = 'Gets a player\'s bucket',
     params = {
         { name = 'id', type = 'playerId', help = 'Player ID' }
@@ -204,7 +129,7 @@ lib.addCommand('getpb', { -- Short for "Get Player Bucket"
         string.format("Player %d is not in any bucket", args.id))
 end)
 
-lib.addCommand('showb', { -- Short for "Show Bucket"
+lib.addCommand('showb', {
     help = 'Shows bucket contents',
     params = {
         { name = 'bucket', type = 'string', help = 'Bucket name' }
@@ -213,21 +138,18 @@ lib.addCommand('showb', { -- Short for "Show Bucket"
 }, function(source, args, raw)
     local contents = bucketExports.getBucketContents(args.bucket)
     local playerList = {}
-    local i = 0
     for playerId in pairs(contents.players) do
-        i = i + 1
-        playerList[i] = { playerId = playerId, Name = GetPlayerName(playerId) or "Unknown" }
+        playerList[#playerList + 1] = { playerId = playerId, Name = GetPlayerName(playerId) or "Unknown" }
     end
     for entityId in pairs(contents.entities) do
-        i = i + 1
-        playerList[i] = { playerId = entityId, Name = "Entity" }
+        playerList[#playerList + 1] = { playerId = entityId, Name = "Entity" }
     end
     print(next(playerList) and
         string.format("Contents of bucket '%s': %s", args.bucket, json.encode(playerList, { indent = true })) or
         string.format("Bucket '%s' is empty or does not exist", args.bucket))
 end)
 
-lib.addCommand('killb', { -- Short for "Kill Bucket"
+lib.addCommand('killb', {
     help = 'Kills a bucket',
     params = {
         { name = 'bucket', type = 'string', help = 'Bucket name' }

@@ -1,7 +1,6 @@
 local cfg = require("data.cfg")
 if not cfg.useDataTables then return end
 
--- Helper function for notifications
 local function notify(title, description, type)
     if cfg.useNotifications then
         lib.notify({ title = title, description = description, type = type })
@@ -27,7 +26,6 @@ function OpenMenuContents(key)
     local playerCount = 0
     local entityCount = 0
     
-    -- Add players to the list
     for k, v in pairs(bucket.players) do
         playerCount = playerCount + 1
         local playerName = GetPlayerName(k) or "Unknown"
@@ -39,7 +37,6 @@ function OpenMenuContents(key)
         table.insert(b_list, row)
     end
     
-    -- Add entities to the list
     for k, v in pairs(bucket.entities) do
         entityCount = entityCount + 1
         local row = {
@@ -110,7 +107,6 @@ function OpenMenu()
             local playerCount = 0
             local entityCount = 0
             
-            -- Count players and entities in this bucket
             local contents = lib.callback.await('rw_buckets:getBucketContents', false, v.key)
             if contents then
                 for _ in pairs(contents.players) do playerCount = playerCount + 1 end
@@ -183,3 +179,6 @@ RegisterCommand("buckets", function()
     cooldown = GetGameTimer()
     OpenMenu()
 end, false)
+
+local menu = {}
+return menu

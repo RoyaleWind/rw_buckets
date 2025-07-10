@@ -3,6 +3,11 @@
 
 # RW Buckets - Standalone Bucket Management System
 
+
+## Documentation
+
+For detailed documentation, installation guides, and troubleshooting tips, visit the [official RW Buckets GitBook](https://docs.royalewind.com/rw_buckets).
+
 ## Overview
 
 RW Buckets is a standalone **Bucket Management** system designed for integration with [FiveM](https://fivem.net/). This tool provides a highly efficient and easy-to-use way of managing buckets within your server, helping streamline operations and improve overall gameplay management.
@@ -26,14 +31,9 @@ To get started with RW Buckets, follow these installation steps:
 RW Buckets offers full support for the [Data Tables](https://infinity-pulse.tebex.io/package/6750416). This integration enhances the functionality and scalability of bucket management on your server.
 ![image](https://github.com/user-attachments/assets/0e51e444-6c64-4e69-85a2-a4bb7018b0b1)
 
-
-## Documentation
-
-For detailed documentation, installation guides, and troubleshooting tips, visit the [official RW Buckets GitBook](https://royalewind.gitbook.io/fivem-1/rw_buckets).
-
 ## Support
 
-For any issues or inquiries, feel free to reach out to the support team via our [Discord](https://discord.gg/T8b8q7ZN8b) or through GitHub Issues.
+For any issues or inquiries, feel free to reach out to the support team via our [Discord](https://discord.gg/T8b8q7ZN8b) or through GitHub Issues
 
 ---
 Enjoy using RW Buckets to enhance your FiveM server management!

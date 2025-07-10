@@ -1,10 +1,6 @@
+local cfg = require("data.cfg")
 local bucketManager = require("server.BucketManager") ---@type BucketManager
 local bucketExports = {}
-
----Adds ACE permission for bucket commands
-Citizen.CreateThread(function()
-    lib.addAce('group.admin', 'command.rw_buckets', true)
-end)
 
 -- <<<Player Exports>>>
 ---Sets a player's bucket
@@ -109,7 +105,7 @@ lib.callback.register('rw_buckets:kill', function(source, key)
     if not source or source <= 0 then return false end
     if not key or type(key) ~= "string" then return false end
     if not IsPlayerAceAllowed(source, "command.rw_buckets") then return false end
-    
+
     bucketExports.killBucket(key)
     return true
 end)
@@ -122,7 +118,7 @@ lib.callback.register('rw_buckets:removePlayerFromBucket', function(source, play
     if not source or source <= 0 then return false end
     if not playerId then return false end
     if not IsPlayerAceAllowed(source, "command.rw_buckets") then return false end
-    
+
     local pid = tonumber(playerId)
     if not pid or not GetPlayerName(pid) then return false end
     return bucketExports.removePlayerFromBucket(pid)
@@ -135,7 +131,7 @@ end)
 lib.callback.register('rw_buckets:removeEntityFromBucket', function(source, entityId)
     if not source or source <= 0 then return false end
     if not entityId then return false end
-    
+
     local eid = tonumber(entityId)
     if not eid or not DoesEntityExist(eid) then return false end
     return bucketExports.removeEntityFromBucket(eid)
@@ -156,10 +152,10 @@ end)
 lib.addCommand('setpb', { -- Short for "Set Player Bucket"
     help = 'Sets a player\'s bucket',
     params = {
-        { name = 'id', type = 'playerId', help = 'Player ID' },
-        { name = 'bucket', type = 'string', help = 'Bucket name' }
+        { name = 'id',     type = 'playerId', help = 'Player ID' },
+        { name = 'bucket', type = 'string',   help = 'Bucket name' }
     },
-    restricted = 'group.developer'
+    restricted = cfg.ace.setpb
 }, function(source, args, raw)
     bucketExports.setPlayerBucket(args.id, args.bucket)
 end)
@@ -169,17 +165,7 @@ lib.addCommand('resetpb', { -- Short for "Reset Player Bucket"
     params = {
         { name = 'id', type = 'playerId', help = 'Player ID' }
     },
-    restricted = 'group.developer'
-}, function(source, args, raw)
-    bucketExports.removePlayerFromBucket(args.id)
-end)
-
-lib.addCommand('resetb', { -- Short for "Reset Bucket"
-    help = 'Resets a player\'s bucket',
-    params = {
-        { name = 'id', type = 'playerId', help = 'Player ID' }
-    },
-    restricted = { 'group.developer', 'group.admin', 'group.superadmin', 'group.owner' }
+    restricted = cfg.ace.resetpb
 }, function(source, args, raw)
     bucketExports.removePlayerFromBucket(args.id)
 end)
@@ -187,7 +173,7 @@ end)
 lib.addCommand('listb', { -- Short for "List Buckets"
     help = 'Lists all active buckets',
     params = {},
-    restricted = 'group.developer'
+    restricted = cfg.ace.listb
 }, function(source, args, raw)
     print(json.encode(bucketExports.getActiveBucketKeys(), { indent = true }))
 end)
@@ -197,7 +183,7 @@ lib.addCommand('getpb', { -- Short for "Get Player Bucket"
     params = {
         { name = 'id', type = 'playerId', help = 'Player ID' }
     },
-    restricted = 'group.developer'
+    restricted = cfg.ace.getpb
 }, function(source, args, raw)
     local bucketKey = bucketExports.getPlayerBucketKey(args.id)
     print(bucketKey and string.format("Player %d is in bucket: %s", args.id, bucketKey) or
@@ -209,7 +195,7 @@ lib.addCommand('showb', { -- Short for "Show Bucket"
     params = {
         { name = 'bucket', type = 'string', help = 'Bucket name' }
     },
-    restricted = 'group.developer'
+    restricted = cfg.ace.showb
 }, function(source, args, raw)
     local contents = bucketExports.getBucketContents(args.bucket)
     local playerList = {}
@@ -232,8 +218,14 @@ lib.addCommand('killb', { -- Short for "Kill Bucket"
     params = {
         { name = 'bucket', type = 'string', help = 'Bucket name' }
     },
-    restricted = 'group.developer'
+    restricted = cfg.ace.killb
 }, function(source, args, raw)
     bucketExports.killBucket(args.bucket)
     print(string.format("Bucket '%s' has been killed", args.bucket))
+end)
+lib.addCommand('buckets', {
+    help = 'See buckets Menu',
+    restricted = cfg.ace.menu
+}, function(source, args, raw)
+    TriggerClientEvent("rw_buckets:OpenMenu", source)
 end)

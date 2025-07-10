@@ -1,12 +1,14 @@
 fx_version 'cerulean'
-game 'gta5'
---<<>>
-author 'RoyaleWind'
-name 'MW BUCKET'
-description 'MW BUCKET'
-version '2.1.1'
+-- use_experimental_fxv2_oal 'yes'
+games { 'rdr3', 'gta5' }
 lua54 'on'
-contact 'https://discord.gg/T8b8q7ZN8b'
+rdr3_warning 'I acknowledge that this is a prerelease build of RedM, and I am aware my resources *will* become incompatible once RedM ships.'
+--<<>>
+name 'RW BUCKET'
+author 'RoyaleWind'
+version '2.2.0'
+description 'MW BUCKET'
+contact 'discord.royalewind.com'
 ------------------------------
 -- <<<<<<<<<<<<<<<<<<
 ------------------------------

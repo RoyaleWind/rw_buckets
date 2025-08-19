@@ -1,6 +1,6 @@
 local cfg = require("data.cfg")
 local isRedM = (GetConvar('IsRedM', 'false') == 'true')
-local exp = isRedM and exports.rw_datatables or exports.ip_datatables
+local exp = exports.rw_datatables 
 if not cfg.useDataTables then return end
 
 function OpenMenuContents(key)

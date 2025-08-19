@@ -28,7 +28,9 @@ To get started with RW Buckets, follow these installation steps:
 
 ## Compatibility
 
-RW Buckets offers full support for the [Data Tables](https://infinity-pulse.tebex.io/package/6750416). This integration enhances the functionality and scalability of bucket management on your server.
+RW Buckets offers full support for the [Data Tables Fivem](https://store.royalewind.com/Product/6983657). [Data Tables RedM]([https://store.royalewind.com/Product/6983657](https://store.royalewind.com/Product/6954818)) This integration enhances the functionality and scalability of bucket management on your server.
+
+
 ![image](https://github.com/user-attachments/assets/0e51e444-6c64-4e69-85a2-a4bb7018b0b1)
 
 ## Support
